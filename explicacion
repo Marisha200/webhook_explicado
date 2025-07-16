@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorador Interactivo de Webhooks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Blue/Green accents -->
+    <!-- Application Structure Plan: A single-page, scrollable interactive simulation. The user actively triggers each phase (Configuration, Execution) via buttons. The core is an animated flow diagram built with HTML/CSS that visualizes the data packet moving between systems and the security verification step. This interactive approach is better for understanding a process than a static diagram, promoting active learning and engagement. -->
+    <!-- Visualization & Content Choices: The core 'visualization' is a custom-built, JS-animated process diagram using HTML divs and Tailwind classes. Goal: Demonstrate a process. Method: JS-controlled CSS animations. Interaction: User-clicked buttons to progress the simulation. Justification: An interactive diagram makes the abstract flow of data and verification tangible. The analogy is presented in a distinct card to reinforce learning. Library/Method: Vanilla JS and CSS transitions. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F9FA;
+            color: #212529;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .btn {
+            transition: all 0.2s ease-in-out;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            padding: 0.6rem 1.2rem;
+        }
+        .btn-primary {
+            background-color: #4A90E2;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #357ABD;
+        }
+        .btn-primary:disabled {
+            background-color: #9B9B9B;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background-color: #50E3C2;
+            color: #212529;
+        }
+        .btn-secondary:hover {
+            background-color: #38A18A;
+        }
+        .btn-secondary:disabled {
+            background-color: #A3D9CE;
+            cursor: not-allowed;
+        }
+        #data-packet {
+            position: absolute;
+            left: 25%;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            transition: all 1.5s ease-in-out;
+        }
+        #data-packet.is-moving {
+            left: 75%;
+            opacity: 1;
+        }
+        .log-entry {
+            border-left: 3px solid;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .highlight-success {
+            box-shadow: 0 0 15px rgba(80, 227, 194, 0.7);
+            border-color: #50E3C2;
+        }
+        .highlight-error {
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.7);
+            border-color: #E74C3C;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800">Explorador Interactivo de Webhooks</h1>
+            <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Una guía visual para entender cómo las aplicaciones se comunican de forma segura y automática.</p>
+        </header>
+
+        <main>
+            <!-- ACTORS SECTION -->
+            <section id="actors" class="mb-12">
+                <h2 class="text-2xl font-bold text-center mb-6 text-gray-700">Los Actores del Flujo</h2>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="card p-6 text-center">
+                        <div class="text-5xl mb-3">📦</div>
+                        <h3 class="text-xl font-semibold mb-2">Sistema A (Externo)</h3>
+                        <p class="text-gray-600">La aplicación donde ocurre un evento. Es quien envía la notificación (el "aviso").</p>
+                        <p class="font-mono mt-2 bg-gray-100 p-2 rounded text-sm">Ej: Mercado Pago, Tiendanube, GitHub.</p>
+                    </div>
+                    <div class="card p-6 text-center">
+                        <div class="text-5xl mb-3">🎯</div>
+                        <h3 class="text-xl font-semibold mb-2">Sistema B (Tu Aplicación)</h3>
+                        <p class="text-gray-600">Tu aplicación que necesita recibir esa notificación para actuar en consecuencia.</p>
+                        <p class="font-mono mt-2 bg-gray-100 p-2 rounded text-sm">Ej: Tu sistema de facturación, tu servidor.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- INTERACTIVE SIMULATION -->
+            <section id="simulation" class="card p-6 md:p-8">
+                <h2 class="text-3xl font-bold text-center mb-8 text-gray-800">Simulación del Flujo de un Webhook</h2>
+
+                <!-- PHASE 1 -->
+                <div class="mb-10 pb-8 border-b border-gray-200">
+                    <h3 class="text-xl font-semibold mb-4 text-center">Fase 1: La Configuración (Acuerdo de Confianza)</h3>
+                    <div class="flex justify-center mb-6">
+                        <button id="config-btn" class="btn btn-primary shadow-lg">1. Iniciar Configuración</button>
+                    </div>
+                    <p id="config-status" class="text-center text-gray-500 h-6 transition-opacity duration-500 opacity-0">Generando URL y Token Secreto...</p>
+                </div>
+
+                <!-- SIMULATION AREA -->
+                <div class="relative grid md:grid-cols-2 gap-8 items-start min-h-[300px]">
+                    <!-- SYSTEM A -->
+                    <div id="system-a-card" class="card p-6 border-2 border-transparent">
+                        <h4 class="font-bold text-lg mb-4 text-center">Sistema A (Tienda Online)</h4>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <p class="text-sm font-semibold">Configuración Recibida:</p>
+                            <div class="mt-2 space-y-2 text-xs font-mono break-all">
+                                <p><strong>URL a notificar:</strong> <span id="url-display" class="text-gray-500">Aún no configurada</span></p>
+                                <p><strong>Token Secreto:</strong> <span id="token-display" class="text-gray-500">Aún no configurado</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- SYSTEM B -->
+                    <div id="system-b-card" class="card p-6 border-2 border-transparent">
+                        <h4 class="font-bold text-lg mb-4 text-center">Sistema B (Tu Servidor)</h4>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                             <p class="text-sm font-semibold">Mis Credenciales:</p>
+                            <div class="mt-2 space-y-2 text-xs font-mono break-all">
+                                <p><strong>Mi URL pública:</strong> <span id="my-url-display" class="text-gray-500">Esperando generación...</span></p>
+                                <p><strong>Mi Token Secreto:</strong> <span id="my-token-display" class="text-gray-500">Esperando generación...</span></p>
+                            </div>
+                        </div>
+                    </div>
+                     <!-- Data Packet -->
+                    <div id="data-packet" class="p-4 bg-yellow-300 rounded-lg shadow-2xl text-center w-40">
+                        <div class="text-2xl">📨</div>
+                        <p class="text-xs font-bold">WEBHOOK</p>
+                        <p class="text-xs font-mono">{evento: 'compra'}</p>
+                    </div>
+                </div>
+
+                <!-- PHASE 2 -->
+                <div class="mt-10 pt-8 border-t border-gray-200">
+                    <h3 class="text-xl font-semibold mb-4 text-center">Fase 2: La Ejecución (Un Evento Ocurre)</h3>
+                    <div class="text-center mb-4">
+                        <p class="text-sm text-gray-600 mb-2">Simular un token...</p>
+                        <div class="inline-flex bg-gray-200 p-1 rounded-lg">
+                            <button id="sim-success-btn" class="px-4 py-1 text-sm rounded-md bg-white shadow">Correcto</button>
+                            <button id="sim-fail-btn" class="px-4 py-1 text-sm rounded-md">Incorrecto</button>
+                        </div>
+                    </div>
+                    <div class="flex justify-center">
+                        <button id="event-btn" class="btn btn-secondary shadow-lg" disabled>2. Simular Evento de Compra</button>
+                    </div>
+                </div>
+
+                <!-- LOG AREA -->
+                <div class="mt-10">
+                    <h4 class="font-bold text-lg mb-4">Registro de Actividad del Sistema B:</h4>
+                    <div id="log-area" class="bg-gray-800 text-white font-mono text-sm p-4 rounded-lg h-48 overflow-y-auto">
+                        <p class="text-gray-400">Esperando eventos...</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- ANALOGY SECTION -->
+            <section id="analogy" class="mt-16">
+                 <h2 class="text-3xl font-bold text-center mb-8 text-gray-800">La Analogía: Delivery con Código Secreto</h2>
+                 <div class="card p-6 md:p-8 bg-blue-50 border-l-4 border-blue-400">
+                     <p class="mb-4 text-gray-700">Imaginá que tu aplicación es un restaurante de puertas cerradas (**Sistema B**) y Mercado Pago es un servicio de delivery (**Sistema A**).</p>
+                     <ol class="list-decimal list-inside space-y-3 text-gray-600">
+                         <li><strong class="text-gray-800">Configuración:</strong> Llamás al delivery y le decís: "Cuando tengas un pedido, tráelo a la puerta de servicio en la Calle Falsa 123 (la **URL**). Para saber que sos vos, al golpear, decí la frase secreta 'el águila vuela de noche' (el **Token Secreto**)."</li>
+                         <li><strong class="text-gray-800">Ejecución:</strong> El repartidor llega, golpea y dice: "Traigo una pizza. Ah, y *el águila vuela de noche*". Tu cocinero escucha el código, sabe que el pedido es legítimo, abre la puerta y prepara la pizza. Si alguien golpeara sin saber el código, no le abrirían.</li>
+                     </ol>
+                     <p class="mt-5 font-semibold text-blue-800">El Token Secreto es esa contraseña que asegura que la comunicación es auténtica y segura.</p>
+                 </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // STATE
+            let state = {
+                isConfigured: false,
+                isSimulatingSuccess: true,
+                myUrl: '',
+                myToken: ''
+            };
+
+            // DOM ELEMENTS
+            const configBtn = document.getElementById('config-btn');
+            const eventBtn = document.getElementById('event-btn');
+            const simSuccessBtn = document.getElementById('sim-success-btn');
+            const simFailBtn = document.getElementById('sim-fail-btn');
+
+            const configStatus = document.getElementById('config-status');
+            const urlDisplay = document.getElementById('url-display');
+            const tokenDisplay = document.getElementById('token-display');
+            const myUrlDisplay = document.getElementById('my-url-display');
+            const myTokenDisplay = document.getElementById('my-token-display');
+            
+            const systemACard = document.getElementById('system-a-card');
+            const systemBCard = document.getElementById('system-b-card');
+
+            const dataPacket = document.getElementById('data-packet');
+            const logArea = document.getElementById('log-area');
+
+            // FUNCTIONS
+            function addLog(message, type = 'info') {
+                if (logArea.innerHTML.includes('Esperando eventos...')) {
+                    logArea.innerHTML = '';
+                }
+                const logEntry = document.createElement('p');
+                const timestamp = new Date().toLocaleTimeString();
+                
+                let colorClass = 'border-gray-500 text-gray-300';
+                if (type === 'success') colorClass = 'border-green-400 text-green-300';
+                if (type === 'error') colorClass = 'border-red-400 text-red-300';
+                
+                logEntry.className = `log-entry p-2 ${colorClass}`;
+                logEntry.innerHTML = `<span class="text-yellow-400">[${timestamp}]</span>: ${message}`;
+                logArea.appendChild(logEntry);
+                logArea.scrollTop = logArea.scrollHeight;
+            }
+
+            function generateCredentials() {
+                state.myUrl = `https://tuapp.com/hook/${(Math.random() + 1).toString(36).substring(7)}`;
+                state.myToken = `sk_${(Math.random() + 1).toString(36).substring(2)}`;
+                myUrlDisplay.textContent = state.myUrl;
+                myUrlDisplay.classList.remove('text-gray-500');
+                myTokenDisplay.textContent = state.myToken;
+                myTokenDisplay.classList.remove('text-gray-500');
+            }
+
+            // EVENT LISTENERS
+            configBtn.addEventListener('click', () => {
+                configBtn.disabled = true;
+                configStatus.classList.remove('opacity-0');
+                addLog('Iniciando configuración...');
+
+                setTimeout(() => {
+                    generateCredentials();
+                    addLog(`URL generada: ${state.myUrl}`);
+                    addLog(`Token Secreto generado: ${state.myToken}`);
+                }, 1000);
+
+                setTimeout(() => {
+                    addLog('Enviando credenciales al Sistema A...');
+                    urlDisplay.textContent = state.myUrl;
+                    urlDisplay.classList.remove('text-gray-500');
+                    tokenDisplay.textContent = state.myToken;
+                    tokenDisplay.classList.remove('text-gray-500');
+                    systemACard.classList.add('highlight-success');
+                }, 2000);
+
+                setTimeout(() => {
+                    configStatus.textContent = '¡Configuración completada!';
+                    configStatus.classList.add('text-green-600');
+                    eventBtn.disabled = false;
+                    addLog('Sistema A confirma la configuración.', 'success');
+                    systemACard.classList.remove('highlight-success');
+                    state.isConfigured = true;
+                }, 3000);
+            });
+
+            eventBtn.addEventListener('click', () => {
+                eventBtn.disabled = true;
+                addLog('Evento de compra detectado en Sistema A. Enviando webhook...');
+                
+                dataPacket.classList.add('is-moving');
+
+                setTimeout(() => {
+                    addLog('Webhook recibido en Sistema B. Verificando token...');
+                    systemBCard.classList.add('highlight-success');
+
+                    // Verification
+                    setTimeout(() => {
+                        systemBCard.classList.remove('highlight-success');
+                        if (state.isSimulatingSuccess) {
+                            addLog('Token Secreto VÁLIDO.', 'success');
+                            addLog('Procesando información: Descontando stock y enviando email de confirmación.', 'success');
+                            systemBCard.classList.add('highlight-success');
+                        } else {
+                            addLog('Token Secreto INVÁLIDO. ¡Peligro de seguridad!', 'error');
+                            addLog('Mensaje descartado. No se realiza ninguna acción.', 'error');
+                            systemBCard.classList.add('highlight-error');
+                        }
+                    }, 1000);
+
+                    // Reset
+                    setTimeout(() => {
+                         dataPacket.classList.remove('is-moving');
+                         systemBCard.classList.remove('highlight-success', 'highlight-error');
+                         eventBtn.disabled = false;
+                    }, 2500);
+
+                }, 1500);
+            });
+            
+            simSuccessBtn.addEventListener('click', () => {
+                state.isSimulatingSuccess = true;
+                simSuccessBtn.classList.add('bg-white', 'shadow');
+                simFailBtn.classList.remove('bg-white', 'shadow');
+            });
+            
+            simFailBtn.addEventListener('click', () => {
+                state.isSimulatingSuccess = false;
+                simFailBtn.classList.add('bg-white', 'shadow');
+                simSuccessBtn.classList.remove('bg-white', 'shadow');
+            });
+
+        });
+    </script>
+
+</body>
+</html>
